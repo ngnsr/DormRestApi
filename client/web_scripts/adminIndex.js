@@ -27,26 +27,31 @@ async function addDormitory() {
 async function addStudent() {
     try {
         const surname = document.getElementById('surname').value;
-        console.log(surname);
         const name = document.getElementById('name').value;
-        const dormitory_num = document.getElementById('dormitory_num').value;
+        const dorm_number = document.getElementById('dorm_number').value;
         const room_name = document.getElementById('room_name').value;
-        console.log(room_name);
         const contact_info = document.getElementById('contact_info').value;
-
-        const room = await fetch('localhost:9999/api/room/get-by-name', {
+        
+        const roomResp = await fetch('http://localhost:9999/api/room/get-by-dorm-num-and-name/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                room_name
+                room_name,
+                dorm_number
             }),
         });
+        
+        if(!roomResp.ok){
+            room_name.value = '';
+            dorm_number.value = '';
+            alert("Такої кімнати або гуртожитку не існує!")
+            return;
+        }
 
-        console.log("start");
-        console.log(room);
-        console.log("end");
+        const room = await roomResp.json();
+        const roomId = room.id;
 
         const response = await fetch('http://localhost:9999/api/student', {
             method: 'POST',
@@ -54,10 +59,9 @@ async function addStudent() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                email,
                 surname,
                 name,
-                dormitory_num,
+                dormitory_num: dorm_number,
                 roomId,
                 contact_info,
             }),
@@ -65,16 +69,14 @@ async function addStudent() {
 
         if (response.ok) {
             alert('Студент успішно додано!');
-            // Очистка полів форми
             document.getElementById('addStudentForm').reset();
         } else {
             const data = await response.json();
             alert(`Помилка: ${data.message}`);
         }
-
     } catch (error) {
-        console.error('Помилка при додаванні студента:', error);
-        alert('Помилка при додаванні студента:', error);
+        console.error('Помилка при додаванні студента:', error.message);
+        alert('Помилка при додаванні студента:', error.message);
     }
 }
 
@@ -82,9 +84,29 @@ async function addRoom() {
     try {
         const block_number = document.getElementById('block_number').value;
         const capacity = document.getElementById('capacity').value;
-        const free_capacity = document.getElementById('free_capacity').value;
-        const room_name = document.getElementById('room_name').value;
-        const dormitoryId = document.getElementById('dormitoryId').value;
+        const free_capacity = capacity;
+        const room_name = block_number + "/" + capacity;
+        const dorm_number = document.getElementById('room_dorm_number').value;
+
+        const dormResp = await fetch('http://localhost:9999/api/dormitory/get-by-dorm-num', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dorm_number
+            }),
+        });
+
+        if(!dormResp.ok){
+            dorm_number.value = '';
+            alert("Такого гуртожитку не існує!")
+            return;
+        }
+
+        const dorm = await dormResp.json();
+
+        const dormitoryId = dorm.id;
 
         const response = await fetch('http://localhost:9999/api/room', {
             method: 'POST',
